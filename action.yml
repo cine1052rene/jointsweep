@@ -1,0 +1,39 @@
+name: jointsweep
+description: Measure URDF/MJCF files in a pull request for self-collision inside joint limits, actuator ranges past joint ranges, and drift from a source model.
+inputs:
+  models:
+    description: Space-separated URDF/MJCF paths to check (default - every .urdf/.xml changed in the PR)
+    default: ""
+  exact:
+    description: Confirm hull contacts with exact mesh booleans
+    default: "false"
+  fail-on:
+    description: error | warning | never
+    default: "error"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: pip install "jointsweep[exact] @ git+https://github.com/cine1052rene/jointsweep"
+    - shell: bash
+      env:
+        MODELS: ${{ inputs.models }}
+        EXACT: ${{ inputs.exact }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        BASE: ${{ github.event.pull_request.base.sha }}
+      run: |
+        if [ -z "$MODELS" ]; then
+          MODELS=$(git diff --name-only "${BASE:-HEAD~1}" -- '*.urdf' '*.xml' | tr '\n' ' ')
+        fi
+        if [ -z "$MODELS" ]; then echo "no robot descriptions changed"; exit 0; fi
+        rc=0
+        for f in $MODELS; do
+          grep -q -E "<robot|<mujoco" "$f" || continue
+          extra=""; if [ "$EXACT" = "true" ]; then extra="--exact"; fi
+          jointsweep "$f" $extra --fail-on "$FAIL_ON" --md /tmp/js.md || rc=1
+          cat /tmp/js.md >> "$GITHUB_STEP_SUMMARY"
+        done
+        exit $rc

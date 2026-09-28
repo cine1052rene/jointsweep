@@ -1,0 +1,23 @@
+<mujoco model="toy_arm">
+  <!-- A two-link arm whose elbow can fold the forearm back into the base inside its own
+       declared range, and whose elbow actuator can command past the joint limit. -->
+  <compiler angle="radian"/>
+  <option gravity="0 0 0"/>
+  <worldbody>
+    <body name="base" pos="0 0 0">
+      <geom name="base_box" type="box" size="0.05 0.05 0.05" pos="0 0 0.05"/>
+      <body name="upper" pos="0 0 0.1">
+        <joint name="shoulder" type="hinge" axis="0 1 0" range="-1.5 1.5"/>
+        <geom type="capsule" fromto="0 0 0 0 0 0.2" size="0.01"/>
+        <body name="fore" pos="0 0 0.2">
+          <joint name="elbow" type="hinge" axis="0 1 0" range="-3.0 3.0"/>
+          <geom type="capsule" fromto="0 0 0 0 0 0.25" size="0.01"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="shoulder" joint="shoulder" ctrlrange="-1.5 1.5"/>
+    <position name="elbow" joint="elbow" ctrlrange="-3.0 3.1"/>
+  </actuator>
+</mujoco>
